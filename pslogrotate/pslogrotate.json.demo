@@ -6,7 +6,7 @@
         "name": "Barrier",
         "service": "Barrier",
         "path": "I:\\LogFiles\\Runtime.log",
-        "retention": "1",
+        "retention": "10",
         "compress": "1",
         "restart": "1",
         "type": "single"

@@ -331,7 +331,9 @@ foreach ($log in $JsonConfig.log)
       try
       {
          # Stop Service to rotate Logfile (if configured)
-         $null = (Stop-Service -Name $LGService -Force -Confirm:$false -ErrorAction Stop)
+         $msg = ('stop service {0}' -f $LGService)
+         Write-Verbose -Message $msg
+         $null = (Stop-Service -Name $LGService -Force -Confirm:$false -ErrorAction Stop -WarningAction SilentlyContinue)
       }
       catch
       {
@@ -345,14 +347,14 @@ foreach ($log in $JsonConfig.log)
    {
       single
       {
-         $null = (Watch-LogFile -LogPath $LGPath -LogRetention $LGRetention -LogCompress $LGCompress)
+         $null = (Watch-LogFile -LogPath $LGPath -LogRetention $LGRetention -LogCompress $LGCompress -ErrorAction Stop)
 
          # check zip files
          if ($LGCompress -eq '1')
          {
-            $FilePath = (Split-Path -Path $LGPath)
-            $FileName = (Split-Path -Path $LGPath -Leaf)
-            $AllZipFiles = ((Get-ChildItem -Path $FilePath -Filter '*.zip').Name)
+            $FilePath = (Split-Path -Path $LGPath -ErrorAction Stop)
+            $FileName = (Split-Path -Path $LGPath -Leaf -ErrorAction Stop)
+            $AllZipFiles = ((Get-ChildItem -Path $FilePath -Filter '*.zip' -ErrorAction Stop).Name)
 
             foreach ($ZipFile in $AllZipFiles)
             {
@@ -362,7 +364,7 @@ foreach ($log in $JsonConfig.log)
                {
                   $FileToCheck = $FilePath + '\' + $ZipFile
                   Write-Verbose -Message $FileToCheck
-                  $null = (Remove-OldLogFiles -FuncFile $FileToCheck -FuncRetention $LGRetention)
+                  $null = (Remove-OldLogFiles -FuncFile $FileToCheck -FuncRetention $LGRetention -ErrorAction Stop)
                }
             }
          }
@@ -372,7 +374,7 @@ foreach ($log in $JsonConfig.log)
          # get path and check
          try
          {
-            $FilePath = (Split-Path -Path $LGPath)    
+            $FilePath = (Split-Path -Path $LGPath -ErrorAction Stop)    
          }
          catch
          {
@@ -389,12 +391,12 @@ foreach ($log in $JsonConfig.log)
          if (Test-Path -Path $FilePath -PathType Container -ErrorAction SilentlyContinue)
          {
             Write-Verbose -Message ('Use File Filter : {0}' -f $FileExt)
-            $AllFiles = ((Get-ChildItem -Path $FilePath -Filter $FileExt).Name)
+            $AllFiles = ((Get-ChildItem -Path $FilePath -Filter $FileExt -ErrorAction Stop).Name)
 
             foreach ($LogToCheck in $AllFiles)
             {
                $FileToCheck = $FilePath + '\' + $LogToCheck
-               $null = (Watch-LogFile -LogPath $FileToCheck -LogRetention $LGRetention -LogCompress $LGCompress)
+               $null = (Watch-LogFile -LogPath $FileToCheck -LogRetention $LGRetention -LogCompress $LGCompress -ErrorAction Stop)
             }
          }
 
@@ -421,7 +423,7 @@ foreach ($log in $JsonConfig.log)
                   # check zip files
                   $FileToCheck = $FilePath + '\' + $ZipFile
                   Write-Verbose -Message $FileToCheck
-                  $null = (Remove-OldLogFiles -FuncFile $FileToCheck -FuncRetention $LGRetention)
+                  $null = (Remove-OldLogFiles -FuncFile $FileToCheck -FuncRetention $LGRetention -ErrorAction Stop)
                }
             }
          }
@@ -433,6 +435,8 @@ foreach ($log in $JsonConfig.log)
    {
       try
       {
+         $msg = ('start service {0}' -f $LGService)
+         Write-Verbose -Message $msg
          $null = (Start-Service -Name $LGService -ErrorAction Stop)
       }
       catch
