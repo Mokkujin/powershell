@@ -78,6 +78,13 @@ function Out-LogFileCompress
          $msg = ('Could not compress logfile {0}' -f $FileName)
          Write-Verbose -Message $msg
          Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2003 -Message $msg -ErrorAction Continue
+
+         #region GarbageCollection
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         #endregion GarbageCollection
       }
 
       # remove uncompressed logfile
@@ -90,6 +97,13 @@ function Out-LogFileCompress
          $msg = ('logfile {0} could not be deleted' -f $FuncFile)
          Write-Verbose -Message $msg
          Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2010 -Message $msg -ErrorAction Continue
+
+         #region GarbageCollection
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         #endregion GarbageCollection
       }
    }
    else
@@ -157,6 +171,13 @@ function Remove-OldLogFiles
             Write-Verbose -Message $msg
             Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2006 -Message $msg -ErrorAction Continue
             $Return = $false
+
+            #region GarbageCollection
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            #endregion GarbageCollection
          }
       }
       else
@@ -238,6 +259,13 @@ function Watch-LogFile
             $msg = ('logfile {0} could not be renamed' -f $LogPath)
             Write-Verbose -Message $msg
             Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2009 -Message $msg -ErrorAction Continue
+
+            #region GarbageCollection
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            #endregion GarbageCollection
          }
 
 
@@ -271,6 +299,15 @@ catch
    catch
    {
       Write-Error 'Could not create Namespace in Application Log'
+
+      #region GarbageCollection
+      [GC]::Collect()
+      [GC]::WaitForPendingFinalizers()
+      [GC]::Collect()
+      [GC]::WaitForPendingFinalizers()
+      #endregion GarbageCollection
+
+      exit 3
    }
 }
 
@@ -287,6 +324,14 @@ if (Test-Path -Path $Config -PathType Leaf)
       $msg = ('Could not read config file {0}' -f $Config)
       Write-Error -Message $msg
       Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2001 -Message $msg -ErrorAction Continue
+
+      #region GarbageCollection
+      [GC]::Collect()
+      [GC]::WaitForPendingFinalizers()
+      [GC]::Collect()
+      [GC]::WaitForPendingFinalizers()
+      #endregion GarbageCollection
+
       exit 1
    }
 }
@@ -301,6 +346,14 @@ catch
    $msg = ('you have to define the global keys compress and retiontion in the global section of the configfile {0}' -f $Config)
    Write-Error -Message $msg
    Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2002 -Message $msg -ErrorAction Continue
+
+   #region GarbageCollection
+   [GC]::Collect()
+   [GC]::WaitForPendingFinalizers()
+   [GC]::Collect()
+   [GC]::WaitForPendingFinalizers()
+   #endregion GarbageCollection
+
    exit 2
 }
 
@@ -340,6 +393,13 @@ foreach ($log in $JsonConfig.log)
          $msg = ('could not stop service {0}' -f $LGService)
          Write-Verbose -Message $msg
          Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2007 -Message $msg -ErrorAction Continue
+
+         #region GarbageCollection
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         #endregion GarbageCollection
       }
    }
 
@@ -381,7 +441,15 @@ foreach ($log in $JsonConfig.log)
             $msg = ('could not get path to logfile {0}' -f $LGPath)
             Write-Verbose -Message $msg
             Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2007 -Message $msg -ErrorAction Continue
-            break
+
+            #region GarbageCollection
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            #endregion GarbageCollection
+
+            exit 1 
          }
          
          # get file extension
@@ -410,7 +478,14 @@ foreach ($log in $JsonConfig.log)
             {
                $msg = ('could not get any compressed logfiles in {0}' -f $FilePath)
                Write-Verbose -Message $msg
-               Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2007 -Message $msg -ErrorAction Continue
+               Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Warning -EventId 2007 -Message $msg -ErrorAction Continue
+               
+               #region GarbageCollection
+               [GC]::Collect()
+               [GC]::WaitForPendingFinalizers()
+               [GC]::Collect()
+               [GC]::WaitForPendingFinalizers()
+               #endregion GarbageCollection
             }
             
 
@@ -444,6 +519,13 @@ foreach ($log in $JsonConfig.log)
          $msg = ('could not start service {0}' -f $LGService)
          Write-Verbose -Message $msg
          Write-EventLog -LogName 'Application' -Source 'pslogrotate' -EntryType Error -EventId 2008 -Message $msg -ErrorAction Continue
+
+         #region GarbageCollection
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         [GC]::Collect()
+         [GC]::WaitForPendingFinalizers()
+         #endregion GarbageCollection
       }
    }
 }
