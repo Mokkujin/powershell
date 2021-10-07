@@ -122,10 +122,10 @@ function Remove-OldLogFiles
 
    [CmdletBinding(ConfirmImpact = 'None')]
    param (
-      [Parameter(Mandatory, HelpMessage = 'Add help message for user')]
+      [Parameter(Mandatory, HelpMessage = 'File to Remove')]
       [string]
       $FuncFile,
-      [Parameter(Mandatory, HelpMessage = 'Add help message for user')]
+      [Parameter(Mandatory, HelpMessage = 'Retention in Days')]
       [string]
       $FuncRetention
    )
@@ -202,13 +202,13 @@ function Watch-LogFile
 
    [CmdletBinding(ConfirmImpact = 'None')]
    param (
-      [Parameter(Mandatory, HelpMessage = 'Add help message for user')]
+      [Parameter(Mandatory, HelpMessage = 'Path incl File to Logfile')]
       [string]
       $LogPath,
-      [Parameter(Mandatory, HelpMessage = 'Add help message for user')]
+      [Parameter(Mandatory, HelpMessage = 'Retention in Days')]
       [string]
       $LogRetention,
-      [Parameter(Mandatory, HelpMessage = 'Add help message for user')]
+      [Parameter(Mandatory, HelpMessage = 'Compress File ? 1 = yes 0 = no')]
       [string]
       $LogCompress
    )
