@@ -237,12 +237,12 @@ function Watch-LogFile
    if (Test-Path -Path $LogPath -PathType Leaf)
    {
       $FileHash = ((Get-FileHash -Path $LogPath -Algorithm MD5 -ErrorAction Stop).Hash).Substring(2, 8)
-      $FilePath = (Split-Path -Path $LogPath)
-      $FileName = (Split-Path -Path $LogPath -Leaf)
-      $FileExt = (Get-Item -Path $LogPath).Extension
-      $NewFileName = ('{0}_{1}{2}{3}' -f $FileName, (Get-Date -UFormat '%Y%d%m%H%M'), $FileHash, $FileExt)
+      $FilePath = (Split-Path -Path $LogPath -ErrorAction Stop)
+      $FileName = (Split-Path -Path $LogPath -Leaf -ErrorAction Stop)
+      $FileExt = (Get-Item -Path $LogPath -ErrorAction Stop).Extension
+      $NewFileName = ('{0}_{1}{2}{3}' -f $FileName, (Get-Date -UFormat '%Y%d%m%H%M' -ErrorAction Stop), $FileHash, $FileExt)
       
-      $FileRemoved = (Remove-OldLogFiles -FuncFile $LogPath -FuncRetention $LogRetention)
+      $FileRemoved = (Remove-OldLogFiles -FuncFile $LogPath -FuncRetention $LogRetention -ErrorAction Stop)
 
       if ($FileRemoved -eq $false)
       {
@@ -272,7 +272,7 @@ function Watch-LogFile
          if ($LogCompress -eq '1')
          {
             $NewFilePath = $FilePath + '\' + $NewFileName
-            $null = (Out-LogFileCompress -FuncFile $NewFilePath)
+            $null = (Out-LogFileCompress -FuncFile $NewFilePath -ErrorAction Stop)
          }
       }
    }
@@ -313,7 +313,7 @@ catch
 
 # Read Config from Json File
 
-if (Test-Path -Path $Config -PathType Leaf)
+if (Test-Path -Path $Config -PathType Leaf -ErrorAction SilentlyContinue)
 {
    try
    {
