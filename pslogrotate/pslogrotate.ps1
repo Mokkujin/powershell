@@ -289,12 +289,16 @@ function Watch-LogFile
 try
 {
    $null = (Get-EventLog -LogName 'Application' -Source 'pslogrotate' -ErrorAction Stop)
+   $msg = ('Namespace pslogrotate exists in Application' -f $LGService)
+   Write-Verbose -Message $msg
 }
 catch
 {
    try
    {
       $null = (New-EventLog -LogName 'Application' -Source 'pslogrotate' -ErrorAction Stop)   
+      $msg = ('Namespace pslogrotate created in Application' -f $LGService)
+      Write-Verbose -Message $msg
    }
    catch
    {
