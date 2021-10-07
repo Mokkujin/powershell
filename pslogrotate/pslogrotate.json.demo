@@ -1,0 +1,15 @@
+{
+    "compress": "1",
+    "retention": "5",
+    "log": [
+      {
+        "name": "Barrier",
+        "service": "Barrier",
+        "path": "I:\\LogFiles\\Runtime.log",
+        "retention": "1",
+        "compress": "1",
+        "restart": "1",
+        "type": "single"
+      }
+    ]
+  }
