@@ -14,10 +14,10 @@
       PS C:\> .\pslogrotate.ps1 -Config pslogrotate.json
 
       .LINK
-      GITHUB
+      https://github.com/Mokkujin/powershell/tree/main/pslogrotate
 
       .NOTES
-      original version by pope
+      original version by C.Pope
 #>
 [CmdletBinding(ConfirmImpact = 'Low',
    SupportsShouldProcess)]
