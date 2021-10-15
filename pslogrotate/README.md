@@ -60,7 +60,7 @@ compress and retention must be configured all the time in the global section
 | ---- | ---- |
 | name | DisplayName of the Service |
 | service | Name of the service (use Get-Service to show the real name) |
-| path | Path to the Logfile |
+| path | Path to the Logfile incl filename / wildflag (if you use a wildflag the parameter type has to been set to multi) |
 | retention | how long should the logfile exists on harddrive ( timespan is in days !) |
 | compress | should the logfile been compressed ? | 
 | restart | selects whether the service should be restarted before the logfile is rotated |
