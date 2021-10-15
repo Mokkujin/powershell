@@ -49,3 +49,19 @@ run with config parameter
 ```powershell
 .\pslogrotate.ps1 -Config C:\Temp\config.json
 ```
+
+## How does it work ?
+
+Here a short explanation about the Configuration.
+
+compress and retention must be configured all the time in the global section
+
+| Variable | Description |
+| ---- | ---- |
+| name | DisplayName of the Service |
+| service | Name of the service (use Get-Service to show the real name) |
+| path | Path to the Logfile |
+| retention | how long should the logfile exists on harddrive ( timespan is in days !) |
+| compress | should the logfile been compressed ? | 
+| restart | selects whether the service should be restarted before the logfile is rotated |
+| type | is it a single file or multiple files stored in the path (see example) |
