@@ -194,6 +194,15 @@ function New-Backup
             Write-Output $Message 
             Write-Logfile -Message $Message -Status 2
         }
+        finally
+        {
+            #region GarbageCollection
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            #endregion GarbageCollection
+        }
     }
 
     If ($FuncDB.ToLower() -eq 'full')
