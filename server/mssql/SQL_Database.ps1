@@ -1,5 +1,4 @@
 #Requires -RunAsAdministrator
-#Requires -Module SQLPS
 #Requires -Version 5.1
 
 <#
@@ -18,12 +17,18 @@
     where should i store the backup files 
     .EXAMPLE
     PS C:\> .\SQL_Database.ps1 -Backup -Database FULL -Path C:\Backup\
+
+    create a backup of all databases to Path C:\Backup\
     .EXAMPLE
     PS C:\> .\SQL_Database.ps1 -Backup -Database DB-TEST-01 -Path C:\Backup\
+
+    create a backup of the database DB-TEST-01 to Path C:\Backup\
     .EXAMPLE
     PS C:\> .\SQL_Database.ps1 -Restore -Database DB-TEST-01 -Path C:\Backup\20211106235801-DB-TEST-01.backup -Verbose
+
+    restore the database DB-TEST-01 from Path C:\Backup\20211106235801-DB-TEST-01.backup
     .LINK
-    https://github.com/Mokkujin/powershell/tree/main/pslogrotate
+    https://github.com/Mokkujin/powershell/tree/main/server/mssql
     .NOTES
     original version by C.Pope
 #>
@@ -57,7 +62,7 @@ param
     [switch]$Restore
 )
 
-#region Variablen
+#region ImportModuleSQLPS
 try
 {
     Import-Module -Name SQLPS -ErrorAction Stop
@@ -67,7 +72,7 @@ catch
     Write-Output 'Could not Import Module SQLPS'
     exit 1
 }
-#endregion
+#endregion ImportModuleSQLPS
 
 #region Functions
 
@@ -84,29 +89,43 @@ function Write-Logfile
     .PARAMETER Status
     status of entry 
     .EXAMPLE
-    # info entry
-    Write-LogFile -Message 'TEST' -Status 1
+    PS C:\> Write-LogFile -Message 'TEST' -Status 1
+
+    write a info message
     .EXAMPLE
-    # warning entry
-    Write-LogFile -Message 'TEST' -Status 2
+    PS C:\> Write-LogFile -Message 'TEST' -Status 2
+
+    write a warning message
     .EXAMPLE
-    # error entry
-    Write-LogFile -Message 'TEST' -Status 3
+    PS C:\> Write-LogFile -Message 'TEST' -Status 3
+
+    write a error message
 #>
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(Mandatory, 
+        ValueFromPipeline, 
+        ValueFromPipelineByPropertyName)]
         [string]$Message,
-        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
+        [Parameter(ValueFromPipeline, 
+        ValueFromPipelineByPropertyName)]
         [int]$Status
     )
 
     switch ($Status)
     {
-        1 { $StatusStr = 'INFO' }
-        2 { $StatusStr = 'WARN' }
-        3 { $StatusStr = 'ERROR' }
-        Default { $StatusStr = 'INFO' }
+        1 { 
+            $StatusStr = 'INFO' 
+            }
+        2 { 
+            $StatusStr = 'WARN' 
+            }
+        3 { 
+            $StatusStr = 'ERROR' 
+            }
+        Default { 
+            $StatusStr = 'INFO' 
+            }
     }
 
     if ($Message)
@@ -115,7 +134,7 @@ function Write-Logfile
         Write-Verbose $LogEntry
     }
 }
-#endregion
+#endregion WriteLogfile
 
 #region CreateBackup
 function New-Backup
@@ -130,13 +149,19 @@ function New-Backup
     .PARAMETER Location
     where should i store the file
     .EXAMPLE
-    New-Backup -FuncDB $Database -Location $Path   
+    PS C:\> New-Backup -FuncDB $Database -Location $Path
+
+    Create a Backup from $Database an save to location $Path
 #>
     [CmdletBinding()]
     param (
-        [Parameter()]
+        [Parameter(Mandatory, 
+        ValueFromPipeline, 
+        ValueFromPipelineByPropertyName)]
         [string]$FuncDB,
-        [Parameter()]
+        [Parameter(Mandatory, 
+        ValueFromPipeline, 
+        ValueFromPipelineByPropertyName)]
         [string]$Location
     )
     # get all Databases
@@ -226,6 +251,8 @@ function New-Backup
                 #region GarbageCollection
                 [GC]::Collect()
                 [GC]::WaitForPendingFinalizers()
+                [GC]::Collect()
+                [GC]::WaitForPendingFinalizers()
                 #endregion GarbageCollection
             }
         }
@@ -235,7 +262,7 @@ function New-Backup
         }
     }
 }
-#endregion
+#endregion CreateBackup
 
 #region DoRestore
 function New-Restore
@@ -250,13 +277,19 @@ function New-Restore
     .PARAMETER Location
     where should i read the file
     .EXAMPLE
-    New-Restore -FuncDB $Database -Location $Path  
+    PS C:\> New-Restore -FuncDB $Database -Location $Path
+    
+    Restore the $Database from Location $Path (Path must be a backupfile)
 #>
     [CmdletBinding()]
     param (
-        [Parameter()]
+        [Parameter(Mandatory, 
+            ValueFromPipeline, 
+            ValueFromPipelineByPropertyName)]
         [string]$FuncDB,
-        [Parameter()]
+        [Parameter(Mandatory, 
+            ValueFromPipeline, 
+            ValueFromPipelineByPropertyName)]
         [string]$Location
     )
 
@@ -286,12 +319,10 @@ function New-Restore
             #region GarbageCollection
             [GC]::Collect()
             [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
             #endregion GarbageCollection
         }
-        
-        
-
-
     }
     else
     {
@@ -300,23 +331,22 @@ function New-Restore
         exit
     }
 }
-#endregion
+#endregion DoRestore
 
-#endregion
-
+#endregion Functions
 
 # check if Backup and Restore is set
 If (($Backup) -and ($Restore))
 {
-    Write-Output 'You cannot create a Backup and do an Restore in the same Task ! use -Backup OR -Restore'
-    exit
+    Write-Error -Message 'You cannot create a Backup and do an Restore in the same Task ! use -Backup OR -Restore'
+    exit 2
 }
 
 #region CreateBackup
 If (($Backup) -and (-not ($Path)))
 {
-    Write-Output ('Cannot Backup Database without Backup Location. use -Path' -f $Database)
-    exit
+    Write-Error -Message ('Cannot Backup Database without Backup Location. use -Path' -f $Database)
+    exit 3
 }
 If (($Backup) -and ($Path))
 {
@@ -324,13 +354,12 @@ If (($Backup) -and ($Path))
 }
 #endregion
 
-
 #region CreateRestore
 # check if Restore an Restore File is set , cannot restore a database without dump ;=)
 If (($Restore) -and (-not ($Path)))
 {
-    Write-Output ('Cannot Restore Database {0} without Backup File , plz define -File' -f $Database)
-    exit
+    Write-Error -Message ('Cannot Restore Database {0} without Backup File , plz define -File' -f $Database)
+    exit 4
 }
 
 # do an restore if both set           
