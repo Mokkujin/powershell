@@ -221,6 +221,8 @@ function New-Backup
                 #region GarbageCollection
                 [GC]::Collect()
                 [GC]::WaitForPendingFinalizers()
+                [GC]::Collect()
+                [GC]::WaitForPendingFinalizers()
                 #endregion GarbageCollection
             }
         }
