@@ -191,8 +191,9 @@ function New-Backup
         catch
         {
             $Message = ('could not create folder {0}' -f $Location)
-            Write-Output $Message 
             Write-Logfile -Message $Message -Status 2
+            Write-Error -Message $Message
+            exit 5
         }
         finally
         {
@@ -339,7 +340,7 @@ function New-Restore
     {
         $Message = ('Restore File {0} do not exists' -f $Path)
         Write-Log $Message -Status 3
-        exit
+        exit 6
     }
 }
 #endregion DoRestore
