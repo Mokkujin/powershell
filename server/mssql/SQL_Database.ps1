@@ -26,6 +26,10 @@
 
     create a backup of the database DB-TEST-01 to Path C:\Backup\
     .EXAMPLE
+    PS C:\> .\SQL_Database.ps1 -Backup -Database DB-TEST-01 -Path C:\Backup\ -Logfile C:\TEMP\SQL.log
+
+    create a backup of the database DB-TEST-01 to Path C:\Backup\ and write to Logfile C:\TEMP\SQL.log
+    .EXAMPLE
     PS C:\> .\SQL_Database.ps1 -Restore -Database DB-TEST-01 -Path C:\Backup\20211106235801-DB-TEST-01.backup -Verbose
 
     restore the database DB-TEST-01 from Path C:\Backup\20211106235801-DB-TEST-01.backup
