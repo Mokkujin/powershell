@@ -62,7 +62,7 @@ param
     [Parameter(ParameterSetName = 'Restore')]
     [ValidateNotNullOrEmpty()]
     [string]
-    $script:Logfile = $null,
+    $Logfile = $null,
     [Parameter(ParameterSetName = 'Backup',
         ValueFromPipeline,
         ValueFromPipelineByPropertyName,
@@ -77,8 +77,7 @@ param
 
 #region Vars
 $script:useeventlog = $false
-$script:NameSource = 'SQL_Database'
-$script:NameLog = 'Application'
+$script:GLBLogfile = $Logfile
 #endregion Vars
 
 #region ImportModuleSQLPS
@@ -164,19 +163,21 @@ function Write-Logfile
 
     if (($Message) -and ($script:useeventlog -eq $false))
     {
-        Add-Content -Path $script:Logfile -Value $LogEntry
+        Add-Content -Path $script:GLBLogfile -Value $LogEntry
     }
-    if (($script:useeventlog) -and ($Message))
+
+    Write-Verbose ('USEEVENTLOG {0}' -f $script:useeventlog)
+
+    if ($script:useeventlog)
     {
         $ParaEventMessage = @{
-            LogName     = $script:NameLog
-            Source      = $script:NameSource
+            LogName     = 'Application'
+            Source      = 'SQLDatabaseScript'
             EntryType   = $StatusEvt
             Message     = $LogEntry
             EventID     = $EvtID
-            ErrorAction = Continue
         }
-        Write-EventLog @$ParaEventMessage
+        Write-EventLog @ParaEventMessage -ErrorAction Stop
     }
 }
 #endregion WriteLogfile
@@ -217,7 +218,8 @@ function New-Backup
     }
     catch
     {
-        Write-Logfile -Message 'could not get Databases from SQL Server' -Status 3
+        $Message = 'could not get Databases from SQL Server'
+        Write-LogFile -Message $Message -Status 3
     }
 
     # check if location is a path if not try to export from give string
@@ -321,58 +323,6 @@ function New-Backup
 }
 #endregion CreateBackup
 
-#region CheckCreateEventlogNamespace
-
-function Test-Eventlog
-{
-    <#
-    .SYNOPSIS
-    test for namespace in eventlog and create it if needed
-    .DESCRIPTION
-    test for namespace in eventlog and create it if needed
-    .PARAMETER NameSource
-    Name of the Namespace
-    .PARAMETER NameLog
-    Name of the LogSection
-    .EXAMPLE
-    PS C:\> Test-Eventlog -NameSource SQL_Database -NameLog Application
-
-    Create an EventName Space in Application with the Name SQL_Database
-#>
-    $response = $false
-    # Check if EventLog Source available
-    try
-    {
-        $null = (Get-EventLog -LogName $NameLog -Source $NameSource -ErrorAction Stop)
-        $msg = ('Namespace {1} exists in {0}' -f $NameLog, $NameSource )
-        Write-Verbose -Message $msg
-        $response = $true
-    }
-    catch
-    {
-        try
-        {
-            $null = (New-EventLog -LogName $NameLog -Source $NameSource -ErrorAction Stop)   
-            $msg = ('Namespace {1} created in {0}' -f $NameLog, $NameSource )
-            Write-Verbose -Message $msg
-            $response = $true
-        }
-        catch
-        {
-            Write-Error -Message $('Could not create Namespace {1} in {0} Log' -f $NameLog, $NameSource) -Category 21
-            #region GarbageCollection
-            [GC]::Collect()
-            [GC]::WaitForPendingFinalizers()
-            [GC]::Collect()
-            [GC]::WaitForPendingFinalizers()
-            #endregion GarbageCollection
-            $response = $false
-        }
-    }
-$response
-}
-#endregion CheckCreateEventlogNamespace
-
 #region DoRestore
 function New-Restore
 {
@@ -438,7 +388,7 @@ function New-Restore
     else
     {
         $Message = ('Restore File {0} do not exists' -f $Path)
-        Write-Log $Message -Status 3
+        Write-Logfile $Message -Status 3
         Write-Error -Message $Message -Category 13
         exit 6
     }
@@ -447,22 +397,48 @@ function New-Restore
 
 #endregion Functions
 
-#region CreateLogger
-if (Test-Eventlog -NameSource $script:NameSource -NameLog $script:NameLog) 
-{
-    $script:useeventlog = $true
-}
 
+#region CreateLogger
 if ($script:Logfile)
 {
     $script:useeventlog = $false
 }
+else
+{
+    # Check if EventLog Source available
+    try
+    {
+        $null = (Get-EventLog -LogName 'Application' -Source 'SQLDatabaseScript' -ErrorAction Stop)
+        $msg = ('Namespace -SQLDatabaseScript- exists in -Application-')
+        Write-Logfile -Message $msg
+        $script:useeventlog = $true
+    }
+    catch
+    {
+        try
+        {
+            $null = (New-EventLog -LogName 'Application' -Source 'SQLDatabaseScript' -ErrorAction Stop)   
+            $msg = ('Namespace -SQLDatabaseScript- created in -Application-')
+            Write-Logfile -Message $msg
+            $script:useeventlog = $true
+            Write-Logfile -Message 'First Run'  
+        }
+        catch
+        {
+            Write-Error -Message $('Could not create Namespace -SQLDatabaseScript- in -Application- Log' -f $NameLog, $NameSource)
+            #region GarbageCollection
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            #endregion GarbageCollection
+        }
+    }  
+    
+}
+#endregion CreateLogger
 
-Write-Verbose ('---------------------------------------> Logfile {0}' -f $script:Logfile)
-Write-Verbose ('---------------------------------------> useeventlog {0}' -f $script:useeventlog)
-
-
-#endregion
+Write-Logfile -Message 'Start Backup'
 
 # check if Backup and Restore is set
 If (($Backup) -and ($Restore))
@@ -497,3 +473,5 @@ If (($Restore) -and ($Path))
     New-Restore -FuncDB $Database -Location $Path    
 }
 #endregion
+
+Write-Logfile -Message 'End Backup'
