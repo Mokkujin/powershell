@@ -15,6 +15,8 @@
     if you want to backup a single database set the name of the database , if you want to create a backup of all databases use full
     .PARAMETER Path
     where should i store the backup files 
+    .PARAMETER Logfile
+    logfile (incl. path) if set the log go to an file otherwise the log will go to eventlog 'Application' 'SQL_Database'
     .EXAMPLE
     PS C:\> .\SQL_Database.ps1 -Backup -Database FULL -Path C:\Backup\
 
