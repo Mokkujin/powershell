@@ -62,7 +62,7 @@ param
     [Parameter(ParameterSetName = 'Restore')]
     [ValidateNotNullOrEmpty()]
     [string]
-    $Logfile = $null,
+    $script:Logfile = $null,
     [Parameter(ParameterSetName = 'Backup',
         ValueFromPipeline,
         ValueFromPipelineByPropertyName,
@@ -269,7 +269,7 @@ function New-Backup
             }
             catch
             {
-                Write-Logfile -Message $('could not backup database {0}' -f $SingleDatabase.Name) -Status 3
+                Write-Logfile -Message ('could not backup database {0}' -f $SingleDatabase.Name) -Status 3
             }
             finally
             {
@@ -339,13 +339,14 @@ function Test-Eventlog
 
     Create an EventName Space in Application with the Name SQL_Database
 #>
-
+    $response = $false
     # Check if EventLog Source available
     try
     {
         $null = (Get-EventLog -LogName $NameLog -Source $NameSource -ErrorAction Stop)
         $msg = ('Namespace {1} exists in {0}' -f $NameLog, $NameSource )
         Write-Verbose -Message $msg
+        $response = $true
     }
     catch
     {
@@ -354,6 +355,7 @@ function Test-Eventlog
             $null = (New-EventLog -LogName $NameLog -Source $NameSource -ErrorAction Stop)   
             $msg = ('Namespace {1} created in {0}' -f $NameLog, $NameSource )
             Write-Verbose -Message $msg
+            $response = $true
         }
         catch
         {
@@ -364,8 +366,10 @@ function Test-Eventlog
             [GC]::Collect()
             [GC]::WaitForPendingFinalizers()
             #endregion GarbageCollection
+            $response = $false
         }
     }
+$response
 }
 #endregion CheckCreateEventlogNamespace
 
@@ -444,10 +448,19 @@ function New-Restore
 #endregion Functions
 
 #region CreateLogger
-if ((Test-Eventlog -NameSource $script:NameSource -NameLog $script:NameLog ) -and ( -not ( $Logfile )))
+if (Test-Eventlog -NameSource $script:NameSource -NameLog $script:NameLog) 
 {
     $script:useeventlog = $true
 }
+
+if ($script:Logfile)
+{
+    $script:useeventlog = $false
+}
+
+Write-Verbose ('---------------------------------------> Logfile {0}' -f $script:Logfile)
+Write-Verbose ('---------------------------------------> useeventlog {0}' -f $script:useeventlog)
+
 
 #endregion
 
