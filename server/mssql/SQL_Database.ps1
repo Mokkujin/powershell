@@ -52,6 +52,13 @@ param
     $Path = $null,
     [Parameter(ParameterSetName = 'Backup',
         ValueFromPipeline,
+        ValueFromPipelineByPropertyName)]
+    [Parameter(ParameterSetName = 'Restore')]
+    [ValidateNotNullOrEmpty()]
+    [string]
+    $Logfile = $null,
+    [Parameter(ParameterSetName = 'Backup',
+        ValueFromPipeline,
         ValueFromPipelineByPropertyName,
         HelpMessage = 'Backup a Database')]
     [switch]$Backup,
@@ -62,6 +69,12 @@ param
     [switch]$Restore
 )
 
+#region Vars
+$script:useeventlog = $false
+$script:NameSource = 'SQL_Database'
+$script:NameLog = 'Application'
+#endregion Vars
+
 #region ImportModuleSQLPS
 try
 {
@@ -69,7 +82,7 @@ try
 }
 catch
 {
-    Write-Output 'Could not Import Module SQLPS'
+    Write-Error -Message 'Could not Import Module SQLPS'
     exit 1
 }
 #endregion ImportModuleSQLPS
@@ -79,7 +92,7 @@ catch
 #region WriteLogfile
 function Write-Logfile
 {
-<#
+    <#
     .SYNOPSIS
     write a logfile
     .DESCRIPTION
@@ -104,34 +117,60 @@ function Write-Logfile
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, 
-        ValueFromPipeline, 
-        ValueFromPipelineByPropertyName)]
+            ValueFromPipeline, 
+            ValueFromPipelineByPropertyName)]
         [string]$Message,
         [Parameter(ValueFromPipeline, 
-        ValueFromPipelineByPropertyName)]
+            ValueFromPipelineByPropertyName)]
         [int]$Status
     )
 
     switch ($Status)
     {
-        1 { 
-            $StatusStr = 'INFO' 
-            }
-        2 { 
+        1
+        { 
+            $StatusStr = 'INFO'
+            $StatusEvt = 'Information'
+            $EvtID = '1001' 
+        }
+        2
+        { 
             $StatusStr = 'WARN' 
-            }
-        3 { 
+            $StatusEvt = 'Warning' 
+            $EvtID = '1002' 
+        }
+        3
+        { 
             $StatusStr = 'ERROR' 
-            }
-        Default { 
+            $StatusEvt = 'Error' 
+            $EvtID = '1003'
+        }
+        Default
+        { 
             $StatusStr = 'INFO' 
-            }
+            $StatusEvt = 'Information' 
+            $EvtID = '1001' 
+        }
     }
 
-    if ($Message)
+    $LogEntry = ('| {0} - {1,-5} | {2} ' -f (Get-Date -Format 'dd.MM.yyyy HH:mm:ss'), $StatusStr, $Message)
+    Write-Verbose -Message $LogEntry
+
+    if (($Message) -and ($script:useeventlog -eq $false))
     {
-        $LogEntry = ('| {0} - {1,-5} | {2} ' -f (Get-Date -Format 'dd.MM.yyyy HH:mm:ss'), $StatusStr, $Message)
-        Write-Verbose $LogEntry
+        Add-Content -Path $script:Logfile -Value $LogEntry
+    }
+    if (($script:useeventlog) -and ($Message))
+    {
+        $ParaEventMessage = @{
+            LogName     = $script:NameLog
+            Source      = $script:NameSource
+            EntryType   = $StatusEvt
+            Message     = $LogEntry
+            EventID     = $EvtID
+            ErrorAction = Continue
+        }
+        Write-EventLog @$ParaEventMessage
     }
 }
 #endregion WriteLogfile
@@ -139,7 +178,7 @@ function Write-Logfile
 #region CreateBackup
 function New-Backup
 {
-<#
+    <#
     .SYNOPSIS
     create a backup from an database
     .DESCRIPTION
@@ -156,12 +195,12 @@ function New-Backup
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, 
-        ValueFromPipeline, 
-        ValueFromPipelineByPropertyName)]
+            ValueFromPipeline, 
+            ValueFromPipelineByPropertyName)]
         [string]$FuncDB,
         [Parameter(Mandatory, 
-        ValueFromPipeline, 
-        ValueFromPipelineByPropertyName)]
+            ValueFromPipeline, 
+            ValueFromPipelineByPropertyName)]
         [string]$Location
     )
     # get all Databases
@@ -192,7 +231,7 @@ function New-Backup
         {
             $Message = ('could not create folder {0}' -f $Location)
             Write-Logfile -Message $Message -Status 2
-            Write-Error -Message $Message
+            Write-Error -Message $Message -Category 18
             exit 5
         }
         finally
@@ -276,10 +315,58 @@ function New-Backup
 }
 #endregion CreateBackup
 
+#region CheckCreateEventlogNamespace
+
+function Test-Eventlog
+{
+    <#
+    .SYNOPSIS
+    test for namespace in eventlog and create it if needed
+    .DESCRIPTION
+    test for namespace in eventlog and create it if needed
+    .PARAMETER NameSource
+    Name of the Namespace
+    .PARAMETER NameLog
+    Name of the LogSection
+    .EXAMPLE
+    PS C:\> Test-Eventlog -NameSource SQL_Database -NameLog Application
+
+    Create an EventName Space in Application with the Name SQL_Database
+#>
+
+    # Check if EventLog Source available
+    try
+    {
+        $null = (Get-EventLog -LogName $NameLog -Source $NameSource -ErrorAction Stop)
+        $msg = ('Namespace {1} exists in {0}' -f $NameLog, $NameSource )
+        Write-Verbose -Message $msg
+    }
+    catch
+    {
+        try
+        {
+            $null = (New-EventLog -LogName $NameLog -Source $NameSource -ErrorAction Stop)   
+            $msg = ('Namespace {1} created in {0}' -f $NameLog, $NameSource )
+            Write-Verbose -Message $msg
+        }
+        catch
+        {
+            Write-Error -Message $('Could not create Namespace {1} in {0} Log' -f $NameLog, $NameSource) -Category 21
+            #region GarbageCollection
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            [GC]::Collect()
+            [GC]::WaitForPendingFinalizers()
+            #endregion GarbageCollection
+        }
+    }
+}
+#endregion CheckCreateEventlogNamespace
+
 #region DoRestore
 function New-Restore
 {
-<#
+    <#
     .SYNOPSIS
     restore a database from file
     .DESCRIPTION
@@ -311,20 +398,22 @@ function New-Restore
         try
         {
             $ParaRestore = @{
-                ServerInstance = '.'
-                Database       = $FuncDB
-                BackupFile     = $Location
+                ServerInstance  = '.'
+                Database        = $FuncDB
+                BackupFile      = $Location
                 ReplaceDatabase = $true
-                Confirm        = $true
+                Confirm         = $true
             }
             $null = (Restore-SqlDatabase @ParaRestore -ErrorAction Stop)
-            Write-Logfile -Message $('database {0} restored' -f $FuncDB)
-            Write-Output ('Database {0} restored' -f $FuncDB)
+            $Message = ('Database {0} restored' -f $FuncDB)
+            Write-Logfile -Message $Message
         }
         catch
         {
-            Write-Logfile -Message $('could not restore database {0}' -f $FuncDB) -Status 3
-            exit            
+            $Message = ('could not restore database {0}' -f $FuncDB)
+            Write-Logfile -Message $Message -Status 3
+            Write-Error -Message $Message
+            exit 10           
         }
         finally
         {
@@ -340,6 +429,7 @@ function New-Restore
     {
         $Message = ('Restore File {0} do not exists' -f $Path)
         Write-Log $Message -Status 3
+        Write-Error -Message $Message -Category 13
         exit 6
     }
 }
@@ -347,17 +437,25 @@ function New-Restore
 
 #endregion Functions
 
+#region CreateLogger
+if ((Test-Eventlog -NameSource $script:NameSource -NameLog $script:NameLog ) -and ( -not ( $Logfile )))
+{
+    $script:useeventlog = $true
+}
+
+#endregion
+
 # check if Backup and Restore is set
 If (($Backup) -and ($Restore))
 {
-    Write-Error -Message 'You cannot create a Backup and do an Restore in the same Task ! use -Backup OR -Restore'
+    Write-Error -Message 'You cannot create a Backup and do an Restore in the same Task ! use -Backup OR -Restore' -Category 6
     exit 2
 }
 
 #region CreateBackup
 If (($Backup) -and (-not ($Path)))
 {
-    Write-Error -Message ('Cannot Backup Database without Backup Location. use -Path' -f $Database)
+    Write-Error -Message $('Cannot Backup Database without Backup Location. use -Path' -f $Database) -Category 6
     exit 3
 }
 If (($Backup) -and ($Path))
@@ -370,7 +468,7 @@ If (($Backup) -and ($Path))
 # check if Restore an Restore File is set , cannot restore a database without dump ;=)
 If (($Restore) -and (-not ($Path)))
 {
-    Write-Error -Message ('Cannot Restore Database {0} without Backup File , plz define -File' -f $Database)
+    Write-Error -Message $('Cannot Restore Database {0} without Backup File , plz define -File' -f $Database) -Category 6
     exit 4
 }
 
