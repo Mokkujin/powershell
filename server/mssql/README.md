@@ -47,7 +47,7 @@ name of the database
 
 used with backup = create a backup of database
 
-used with restore = do an resotre of database (existsing database will be overwritten)
+used with restore = do an restore of database (existsing database will be overwritten)
 
 ```- Path```
 
