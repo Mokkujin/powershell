@@ -44,11 +44,15 @@ restore a database
 
 ```- Database```
 name of the database
+
 used with backup = create a backup of database
+
 used with restore = do an resotre of database (existsing database will be overwritten)
 
 ```- Path```
+
 if you use path with the switch backup, all backups will be stored there
+
 if you use path with the switch restore, this backup file will be used to overwrite the database given in ```- Database```
 
 ```- Logfile```
